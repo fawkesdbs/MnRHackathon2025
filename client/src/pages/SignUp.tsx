@@ -20,18 +20,37 @@ export default function SignUp() {
     confirmPassword: "",
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleSignUp = async (e: React.FormEvent) => {
+  const handleSignUp = async (
+    e: React.FormEvent,
+    EntryData: typeof formData
+  ) => {
     e.preventDefault();
-    setIsLoading(true);
+    setError("");
 
-    // Simulate signup process
-    setTimeout(() => {
-      setIsLoading(false);
-      // For demo purposes, redirect to dashboard
-      navigate("/dashboard");
-    }, 1000);
+    try {
+      const response = await fetch("http://localhost:5000/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: EntryData.name,
+          email: EntryData.email,
+          password: EntryData.password,
+        }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Sign up failed");
+      }
+
+      // On successful registration, redirect to the login page
+      navigate("/login");
+    } catch (err) {
+      setError((err as Error).message);
+    }
   };
 
   const handleInputChange = (field: string, value: string) => {
@@ -63,7 +82,10 @@ export default function SignUp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleSignUp} className="space-y-4">
+          <form
+            onSubmit={(e) => handleSignUp(e, formData)}
+            className="space-y-4"
+          >
             <div className="space-y-2">
               <Label htmlFor="name" className="text-gray-700 font-medium">
                 Full Name

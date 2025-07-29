@@ -11,6 +11,7 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { MapPin, Shield } from "lucide-react";
+import GoogleIcon from "../components/GoogleIcon";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -24,7 +25,7 @@ export default function Login() {
     setError(""); // Clear previous errors
 
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
+      const response = await fetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -109,12 +110,16 @@ export default function Login() {
             >
               {isLoading ? "Signing in..." : "Login"}
             </Button>
-            <button
+            {/* <button onClick={handleGoogleLogin} className="w-full btn-secondary mt-4">Sign in with Google</button> */}
+            <Button
               onClick={handleGoogleLogin}
-              className="w-full btn-secondary mt-4"
+              variant={"secondary"}
+              className="w-full py-2.5 mt-2"
+              disabled={isLoading}
             >
-              Sign in with Google
-            </button>
+              <GoogleIcon className="w-5 h-5" />
+              {isLoading ? "Signing in..." : "Sign in with Google"}
+            </Button>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

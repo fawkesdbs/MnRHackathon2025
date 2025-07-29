@@ -25,7 +25,7 @@ passport.use(
         const existingResult = await pool
           .request()
           .input("email", sql.NVarChar, email)
-          .query("SELECT * FROM users WHERE email = @email");
+          .query("SELECT * FROM dbo.users WHERE email = @email");
 
         let user;
 
@@ -37,7 +37,7 @@ passport.use(
             .input("surname", sql.NVarChar, surname)
             .input("email", sql.NVarChar, email)
             .input("google_id", sql.NVarChar, googleId).query(`
-              INSERT INTO users (name, surname, email, google_id) 
+              INSERT INTO dbo.users (name, surname, email, google_id) 
               OUTPUT INSERTED.*
               VALUES (@name, @surname, @email, @google_id)
             `);
@@ -65,7 +65,7 @@ passport.deserializeUser(async (id, done) => {
     const result = await pool
       .request()
       .input("id", sql.Int, id)
-      .query("SELECT * FROM users WHERE id = @id");
+      .query("SELECT * FROM dbo.users WHERE id = @id");
 
     const user = result.recordset[0];
     done(null, user);

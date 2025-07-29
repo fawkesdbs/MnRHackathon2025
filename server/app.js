@@ -5,6 +5,7 @@ const express = require("express");
 const cors = require("cors");
 const passport = require("passport"); // Add this
 const session = require("express-session"); // Add this
+const sql = require("mssql");
 
 // Import your existing routes
 const userRoutes = require("./routes/userRoutes");
@@ -33,7 +34,38 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 // Use the new auth routes
-app.use("/api", authRoutes); // Add this
+app.use("/api/auth", authRoutes); // Add this
+
+const sqlConfig = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_NAME,
+  options: { encrypt: true },
+};
+
+app.get("/api/test-db", async (req, res) => {
+  try {
+    console.log("Running DB table list test...");
+    const pool = await sql.connect(sqlConfig);
+
+    // The query to get all table names and their schemas
+    const result = await pool
+      .request()
+      .query(
+        "SELECT TABLE_SCHEMA, TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'"
+      );
+
+    console.log("Tables found:", result.recordset);
+    res.json({
+      message: "Successfully queried for tables. See data for results.",
+      data: result.recordset,
+    });
+  } catch (err) {
+    console.error("DB TABLE LIST TEST FAILED:", err);
+    res.status(500).json({ message: "Test failed", error: err.message });
+  }
+});
 
 // Existing Routes
 app.use("/api/users", userRoutes);
