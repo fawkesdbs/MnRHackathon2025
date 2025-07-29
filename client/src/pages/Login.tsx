@@ -16,18 +16,39 @@ export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState("");
   const navigate = useNavigate();
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
+  const handleLogin = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setError(""); // Clear previous errors
 
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false);
-      // For demo purposes, redirect to dashboard
-      navigate("/dashboard");
-    }, 1000);
+    try {
+      const response = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.message || "Login failed");
+      }
+
+      const data = await response.json();
+      if (data.token) {
+        localStorage.setItem("token", data.token);
+        navigate("/dashboard");
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  };
+
+  const handleGoogleLogin = () => {
+    window.location.href = "http://localhost:5000/api/auth/google";
   };
 
   return (
@@ -88,6 +109,12 @@ export default function Login() {
             >
               {isLoading ? "Signing in..." : "Login"}
             </Button>
+            <button
+              onClick={handleGoogleLogin}
+              className="w-full btn-secondary mt-4"
+            >
+              Sign in with Google
+            </button>
           </form>
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">

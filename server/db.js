@@ -1,14 +1,28 @@
-const mysql = require('mysql2/promise');
-require('dotenv').config();
+const sql = require("mssql");
+require("dotenv").config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  user: process.env.DB_USER || 'root',
-  password: process.env.DB_PASS || '',
-  database: process.env.DB_NAME || 'hackathon_db',
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0
-});
+const config = {
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  server: process.env.DB_SERVER,
+  database: process.env.DB_DATABASE,
+  options: {
+    encrypt: true,
+    trustServerCertificate: false,
+  },
+  pool: {
+    max: 10,
+    min: 0,
+    idleTimeoutMillis: 30000,
+  },
+};
 
-module.exports = pool;
+const poolPromise = new sql.ConnectionPool(config)
+  .connect()
+  .then((pool) => {
+    console.log("Connected to Azure SQL Database");
+    return pool;
+  })
+  .catch((err) => console.log("Database Connection Failed:", err));
+
+module.exports = { sql, poolPromise };

@@ -1,14 +1,21 @@
 const express = require('express');
+const { poolPromise, sql } = require("../db");
 const router = express.Router();
-const pool = require('../db');
 
-router.get('/health', async (req, res) => {
+router.get("/health", async (req, res) => {
   try {
-    const connection = await pool.getConnection();
-    connection.release();
-    res.send('Database Connection OK');
-  } catch (e) {
-    res.status(500).send('Database Connection Failed');
+    const pool = await poolPromise;
+    const result = await pool.request().query("SELECT 1 AS result");
+    if (result.recordset[0].result === 1) {
+      res.status(200).json({ status: "ok", db: "connected" });
+    } else {
+      throw new Error("Database connection check failed.");
+    }
+  } catch (error) {
+    console.error("Health check failed:", error);
+    res
+      .status(500)
+      .json({ status: "error", db: "disconnected", message: error.message });
   }
 });
 
