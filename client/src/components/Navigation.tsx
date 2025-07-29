@@ -41,13 +41,14 @@ export default function Navigation() {
           <nav className="hidden md:flex space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   className={cn(
                     "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
-                    location.pathname === item.path
+                    isActive
                       ? "bg-primary text-white"
                       : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
                   )}
