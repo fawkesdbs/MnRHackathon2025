@@ -11,53 +11,51 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { MapPin, Shield } from "lucide-react";
+import { useToast } from "../components/ui/use-toast";
 
 export default function SignUp() {
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { toast } = useToast();
   const navigate = useNavigate();
 
-  const handleSignUp = async (
-    e: React.FormEvent,
-    EntryData: typeof formData
-  ) => {
+  const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    setIsLoading(true);
 
     try {
       const response = await fetch("http://localhost:5000/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: EntryData.name,
-          email: EntryData.email,
-          password: EntryData.password,
-        }),
+        body: JSON.stringify({ name, email, password }),
       });
+
+      console.log("Sign Up Response:", response);
+      console.log("Sign Up Code not OK:", !response.ok);
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.message || "Sign up failed");
+        throw new Error(errData.error || "Sign up failed");
       }
-
+      toast({
+        title: "Success!",
+        description: "Your account has been created. Please log in.",
+      });
       // On successful registration, redirect to the login page
       navigate("/login");
     } catch (err) {
-      setError((err as Error).message);
+      toast({
+        variant: "destructive",
+        title: "Sign Up Failed",
+        description: (err as Error).message,
+      });
+      console.error(err);
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleInputChange = (field: string, value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
   };
 
   return (
@@ -82,10 +80,7 @@ export default function SignUp() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form
-            onSubmit={(e) => handleSignUp(e, formData)}
-            className="space-y-4"
-          >
+          <form onSubmit={handleSignUp} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="name" className="text-gray-700 font-medium">
                 Full Name
@@ -94,8 +89,8 @@ export default function SignUp() {
                 id="name"
                 type="text"
                 placeholder="Enter your full name"
-                value={formData.name}
-                onChange={(e) => handleInputChange("name", e.target.value)}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
                 required
                 className="border-gray-200 focus:border-primary focus:ring-primary"
               />
@@ -108,8 +103,8 @@ export default function SignUp() {
                 id="email"
                 type="email"
                 placeholder="Enter your email"
-                value={formData.email}
-                onChange={(e) => handleInputChange("email", e.target.value)}
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 className="border-gray-200 focus:border-primary focus:ring-primary"
               />
@@ -122,8 +117,8 @@ export default function SignUp() {
                 id="password"
                 type="password"
                 placeholder="Create a password"
-                value={formData.password}
-                onChange={(e) => handleInputChange("password", e.target.value)}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 className="border-gray-200 focus:border-primary focus:ring-primary"
               />
@@ -139,10 +134,8 @@ export default function SignUp() {
                 id="confirm-password"
                 type="password"
                 placeholder="Confirm your password"
-                value={formData.confirmPassword}
-                onChange={(e) =>
-                  handleInputChange("confirmPassword", e.target.value)
-                }
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 required
                 className="border-gray-200 focus:border-primary focus:ring-primary"
               />

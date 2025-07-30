@@ -35,16 +35,30 @@ router.post("/register", async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    await pool
+    const newUserResult = await pool
       .request()
       .input("name", sql.VarChar, name)
       .input("surname", sql.VarChar, surname)
       .input("email", sql.VarChar, email)
-      .input("password", sql.VarChar, hashedPassword)
-      .query(
-        `INSERT INTO users (name, surname, email, password) 
-         VALUES (@name, @surname, @email, @password)`
-      );
+      .input("password", sql.VarChar, hashedPassword).query(`
+        INSERT INTO users (name, surname, email, password) 
+        VALUES (@name, @surname, @email, @password)
+        SELECT SCOPE_IDENTITY() AS id;
+        `);
+    const newUserId = newUserResult.recordset[0].id;
+
+    if (!newUserId) {
+      throw new Error("Failed to create user or retrieve user ID.");
+    }
+
+    await pool
+      .request()
+      .input("user_id", sql.Int, newUserId)
+      .input("full_name", sql.NVarChar, name) // Use the name from sign-up as the initial full_name
+      .query(`
+        INSERT INTO dbo.user_profiles (user_id, full_name, created_at, updated_at)
+        VALUES (@user_id, @full_name, GETDATE(), GETDATE())
+      `);
 
     res.status(201).json({ message: "User registered successfully" });
   } catch (err) {
