@@ -94,4 +94,46 @@ router.put("/profile", authenticateToken, async (req, res) => {
   }
 });
 
+router.delete("/profile", authenticateToken, async (req, res) => {
+  const userId = req.user.id;
+  try {
+    const pool = await poolPromise;
+    const transaction = new sql.Transaction(pool);
+
+    await transaction.begin();
+
+    try {
+      const request = new sql.Request(transaction);
+      await request
+        .input("userIdForDest", sql.Int, userId)
+        .query(
+          "DELETE FROM dbo.monitored_destinations WHERE created_by = @userIdForDest"
+        );
+
+      await request
+        .input("userIdForProfile", sql.Int, userId)
+        .query(
+          "DELETE FROM dbo.user_profiles WHERE user_id = @userIdForProfile"
+        );
+
+      await request
+        .input("userIdForSession", sql.Int, userId)
+        .query("DELETE FROM dbo.sessions WHERE user_id = @userIdForSession");
+
+      await request
+        .input("userIdForUser", sql.Int, userId)
+        .query("DELETE FROM dbo.users WHERE id = @userIdForUser");
+
+      await transaction.commit();
+      res.status(200).json({ message: "User profile deleted successfully." });
+    } catch (err) {
+      await transaction.rollback();
+      throw err;
+    }
+  } catch (err) {
+    console.error("Delete profile error:", err);
+    res.status(500).send(err.message);
+  }
+});
+
 module.exports = router;

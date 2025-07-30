@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import { Button } from "../components/ui/button";
@@ -22,84 +22,146 @@ import {
 import { Badge } from "../components/ui/badge";
 import { Plus, X, MapPin, AlertTriangle, Clock, Route } from "lucide-react";
 import type { MonitoredDestination, Alert } from "../types/types";
+import { useToast } from "../components/ui/use-toast";
+
+// Helper function to decode the JWT and get the user ID
+const getUserIdFromToken = (): number | null => {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.id;
+  } catch (e) {
+    return null;
+  }
+};
 
 export default function Dashboard() {
+  const { toast } = useToast();
   const [currentLocation, setCurrentLocation] = useState(
     "Pretoria, South Africa"
   );
   const [newDestination, setNewDestination] = useState("");
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Mock data - in a real app, this would come from an API
-  const [destinations, setDestinations] = useState<MonitoredDestination[]>([
-    {
-      id: "1",
-      location: "Paris, France",
-      risk_level: "Medium",
-      last_checked: new Date(),
-      user_id: "user1",
-    },
-    {
-      id: "2",
-      location: "London, UK",
-      risk_level: "Low",
-      last_checked: new Date(),
-      user_id: "user1",
-    },
-    {
-      id: "3",
-      location: "Bangkok, Thailand",
-      risk_level: "High",
-      last_checked: new Date(),
-      user_id: "user1",
-    },
-  ]);
+  const [destinations, setDestinations] = useState<MonitoredDestination[]>([]);
+  const [criticalAlerts, setCriticalAlerts] = useState<Alert[]>([]);
+  const userId = getUserIdFromToken();
 
-  // Mock critical alerts
-  const criticalAlerts: Alert[] = [
-    {
-      id: "1",
-      title: "Flight BA56 Cancelled",
-      type: "Route",
-      severity: "Critical",
-      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      associated_destination: "1",
-    },
-    {
-      id: "2",
-      title: "High protest activity near Eiffel Tower",
-      type: "Destination",
-      severity: "Critical",
-      timestamp: new Date(Date.now() - 5 * 60 * 60 * 1000),
-      associated_destination: "1",
-    },
-    {
-      id: "3",
-      title: "Public transport strike scheduled",
-      type: "Destination",
-      severity: "Critical",
-      timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000),
-      associated_destination: "3",
-    },
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      if (!userId) {
+        setIsLoading(false);
+        return;
+      }
 
-  const addDestination = () => {
-    if (newDestination.trim()) {
-      const newDest: MonitoredDestination = {
-        id: Date.now().toString(),
-        location: newDestination.trim(),
-        risk_level: "Medium",
-        last_checked: new Date(),
-        user_id: "user1",
-      };
-      setDestinations([...destinations, newDest]);
+      const token = localStorage.getItem("token");
+      setIsLoading(true);
+
+      try {
+        // Fetch both destinations and alerts at the same time
+        const [destinationsRes, alertsRes] = await Promise.all([
+          fetch(
+            `http://localhost:5000/api/monitored-destinations/user/${userId}`,
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          ),
+          fetch(`http://localhost:5000/api/alerts/user/${userId}/critical`, {
+            // Assuming a new endpoint for critical alerts
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        if (!destinationsRes.ok)
+          throw new Error("Failed to fetch destinations.");
+        if (!alertsRes.ok) throw new Error("Failed to fetch alerts.");
+
+        const destinationsData = await destinationsRes.json();
+        const alertsData = await alertsRes.json();
+
+        setDestinations(destinationsData);
+        setCriticalAlerts(alertsData);
+      } catch (error) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Could not load dashboard data.",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [userId, toast]);
+
+  const addDestination = async () => {
+    if (!newDestination.trim() || !userId) return;
+
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch(
+        "http://localhost:5000/api/monitored-destinations",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            created_by: userId,
+            location: newDestination.trim(),
+            risk_level: "Medium",
+          }),
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to add destination.");
+
+      const destResponse = await fetch(
+        `http://localhost:5000/api/monitored-destinations/user/${userId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const updatedDestinations = await destResponse.json();
+      setDestinations(updatedDestinations);
+
       setNewDestination("");
       setIsAddDialogOpen(false);
+      toast({ title: "Success", description: "Destination added." });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message,
+      });
     }
   };
 
-  const removeDestination = (id: string) => {
-    setDestinations(destinations.filter((dest) => dest.id !== id));
+  const removeDestination = async (id: string) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await fetch(
+        `http://localhost:5000/api/monitored-destinations/${id}`,
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      if (!response.ok) throw new Error("Failed to remove destination.");
+
+      setDestinations(destinations.filter((dest) => dest.id.toString() !== id));
+      toast({ title: "Success", description: "Destination removed." });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: (error as Error).message,
+      });
+    }
   };
 
   const getRiskBadgeColor = (risk: string) => {
@@ -118,8 +180,9 @@ export default function Dashboard() {
   };
 
   const formatTimeAgo = (date: Date) => {
+    const dateObj = typeof date === "string" ? new Date(date) : date;
     const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
+    const diffMs = now.getTime() - dateObj.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
@@ -222,35 +285,39 @@ export default function Dashboard() {
                   </div>
 
                   <div className="space-y-2">
-                    {destinations.map((destination) => (
-                      <div
-                        key={destination.id}
-                        className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
-                      >
-                        <div className="flex items-center space-x-3">
-                          <MapPin className="w-4 h-4 text-gray-500" />
-                          <span className="font-medium text-gray-900">
-                            {destination.location}
-                          </span>
-                          <Badge
-                            className={getRiskBadgeColor(
-                              destination.risk_level
-                            )}
-                          >
-                            {destination.risk_level}
-                          </Badge>
-                        </div>
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => removeDestination(destination.id)}
-                          className="text-gray-400 hover:text-red-500 p-1"
+                    {isLoading ? (
+                      <p>Loading...</p>
+                    ) : (
+                      destinations.map((destination) => (
+                        <div
+                          key={destination.id}
+                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
                         >
-                          <X className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    ))}
-                    {destinations.length === 0 && (
+                          <div className="flex items-center space-x-3">
+                            <MapPin className="w-4 h-4 text-gray-500" />
+                            <span className="font-medium text-gray-900">
+                              {destination.location}
+                            </span>
+                            <Badge
+                              className={getRiskBadgeColor(
+                                destination.risk_level
+                              )}
+                            >
+                              {destination.risk_level}
+                            </Badge>
+                          </div>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => removeDestination(destination.id)}
+                            className="text-gray-400 hover:text-red-500 p-1"
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ))
+                    )}
+                    {!isLoading && destinations.length === 0 && (
                       <div className="text-center py-8 text-gray-500">
                         <MapPin className="w-12 h-12 mx-auto mb-2 text-gray-300" />
                         <p>No destinations added yet</p>
@@ -295,29 +362,33 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3">
-                  {criticalAlerts.slice(0, 3).map((alert) => (
-                    <div
-                      key={alert.id}
-                      className="flex items-start space-x-3 p-3 bg-red-50 border border-red-200 rounded-lg"
-                    >
-                      <AlertTriangle className="w-4 h-4 text-critical mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-gray-900">
-                          {alert.title}
-                        </p>
-                        <div className="flex items-center space-x-2 mt-1">
-                          <Badge variant="secondary" className="text-xs">
-                            {alert.type}
-                          </Badge>
-                          <div className="flex items-center text-xs text-gray-500">
-                            <Clock className="w-3 h-3 mr-1" />
-                            {formatTimeAgo(alert.timestamp)}
+                  {isLoading ? (
+                    <p>Loading alerts...</p>
+                  ) : (
+                    criticalAlerts.slice(0, 3).map((alert) => (
+                      <div
+                        key={alert.id}
+                        className="flex items-start space-x-3 p-3 bg-red-50 border border-red-200 rounded-lg"
+                      >
+                        <AlertTriangle className="w-4 h-4 text-critical mt-0.5 flex-shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900">
+                            {alert.title}
+                          </p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <Badge variant="secondary" className="text-xs">
+                              {alert.type}
+                            </Badge>
+                            <div className="flex items-center text-xs text-gray-500">
+                              <Clock className="w-3 h-3 mr-1" />
+                              {formatTimeAgo(alert.timestamp)}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {criticalAlerts.length === 0 && (
+                    ))
+                  )}
+                  {!isLoading && criticalAlerts.length === 0 && (
                     <div className="text-center py-6 text-gray-500">
                       <AlertTriangle className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                       <p className="text-sm">

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -8,6 +9,7 @@ import {
   CardContent,
   CardDescription,
   CardHeader,
+  CardFooter,
   CardTitle,
 } from "../components/ui/card";
 import {
@@ -17,9 +19,20 @@ import {
   SelectTrigger,
   SelectValue,
 } from "../components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "../components/ui/alert-dialog";
 import { Switch } from "../components/ui/switch";
 import { Separator } from "../components/ui/separator";
-import { User, Lock, Bell, Save } from "lucide-react";
+import { User, Lock, Bell, Save, Trash2, ShieldAlert } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
 
 export default function Profile() {
@@ -32,6 +45,7 @@ export default function Profile() {
     risk_threshold: "Medium",
     email_notifications: true,
   });
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -143,6 +157,38 @@ export default function Profile() {
       ...prev,
       [field]: value,
     }));
+  };
+
+  const handleDeleteProfile = async () => {
+    setIsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const response = await fetch("http://localhost:5000/api/users/profile", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to delete profile.");
+      }
+
+      toast({
+        variant: "success",
+        title: "Account Deleted",
+        description: "Your account has been permanently deleted.",
+      });
+      localStorage.removeItem("token");
+      navigate("/login");
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Deletion Failed",
+        description: (error as Error).message,
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -342,6 +388,48 @@ export default function Profile() {
               </div>
             </form>
           </CardContent>
+        </Card>
+        <Card className="shadow-lg border-destructive mt-4 bg-red-100">
+          <CardHeader>
+            <CardTitle className="flex items-center space-x-2 text-destructive">
+              <ShieldAlert className="w-5 h-5" />
+              <span>Danger Zone</span>
+            </CardTitle>
+            <CardDescription>
+              Permanently delete your account and all associated data. This
+              action cannot be undone.
+            </CardDescription>
+          </CardHeader>
+          <CardFooter>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="destructive"
+                  size="lg"
+                  className="w-full sm:w-auto"
+                >
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete My Account
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action is permanent and cannot be undone. This will
+                    permanently delete your account, profile, monitored
+                    destinations, and alerts.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction onClick={handleDeleteProfile}>
+                    Yes, Delete My Account
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </CardFooter>
         </Card>
       </div>
     </div>

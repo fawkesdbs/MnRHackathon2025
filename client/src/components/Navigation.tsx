@@ -86,7 +86,7 @@ export default function Navigation() {
             onClick={handleLogout}
             variant="outline"
             size="sm"
-            className="flex items-center space-x-2 border-gray-200 text-gray-600 hover:text-gray-900"
+            className="flex items-center space-x-2 border-gray-200 text-gray-600 hover:text-destructive"
           >
             <LogOut className="w-4 h-4" />
             <span className="hidden sm:inline">Logout</span>
