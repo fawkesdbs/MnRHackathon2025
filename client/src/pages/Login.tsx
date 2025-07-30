@@ -12,17 +12,18 @@ import {
 } from "../components/ui/card";
 import { MapPin, Shield } from "lucide-react";
 import GoogleIcon from "../components/GoogleIcon";
+import { useToast } from "../components/ui/use-toast";
 
 export default function Login() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState("");
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   const handleLogin = async (event: React.FormEvent) => {
     event.preventDefault();
-    setError(""); // Clear previous errors
+    setIsLoading(true); // Clear previous errors
 
     try {
       const response = await fetch("http://localhost:5000/api/auth/login", {
@@ -35,16 +36,25 @@ export default function Login() {
 
       if (!response.ok) {
         const errData = await response.json();
-        throw new Error(errData.message || "Login failed");
+        throw new Error(errData.error || "Login failed");
       }
 
       const data = await response.json();
       if (data.token) {
         localStorage.setItem("token", data.token);
+        toast({
+          variant: "success",
+          title: "Login Successful",
+          description: "Welcome back! Redirecting you to the dashboard.",
+        });
         navigate("/dashboard");
       }
     } catch (err) {
-      setError((err as Error).message);
+      toast({
+        variant: "destructive",
+        title: "Login Failed",
+        description: (err as Error).message,
+      });
     }
   };
 

@@ -12,6 +12,7 @@ import Dashboard from "./pages/Dashboard";
 import Alerts from "./pages/Alerts";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
+import GoogleAuthSuccess from "./pages/GoogleAuthSuccess";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,10 @@ const App = () => (
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/alerts" element={<Alerts />} />
           <Route path="/profile" element={<Profile />} />
+          <Route
+            path="/google-auth-success/:token"
+            element={<GoogleAuthSuccess />}
+          />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>

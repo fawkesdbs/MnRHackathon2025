@@ -21,10 +21,8 @@ import { Switch } from "../components/ui/switch";
 import { Separator } from "../components/ui/separator";
 import { User, Lock, Bell, Save } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
-import strict from "assert/strict";
 
 export default function Profile() {
-  const { toast } = useToast();
   const [formData, setFormData] = useState({
     full_name: "",
     email: "",
@@ -34,7 +32,7 @@ export default function Profile() {
     risk_threshold: "Medium",
     email_notifications: true,
   });
-
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -81,7 +79,10 @@ export default function Profile() {
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (formData.newPassword !== formData.confirmPassword) {
+    if (
+      formData.newPassword &&
+      formData.newPassword !== formData.confirmPassword
+    ) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -93,7 +94,6 @@ export default function Profile() {
 
     try {
       const token = localStorage.getItem("token");
-      // --- CORRECTED: Send the correct data structure to the backend ---
       const payload = {
         full_name: formData.full_name,
         risk_threshold: formData.risk_threshold,
@@ -117,6 +117,7 @@ export default function Profile() {
       }
 
       toast({
+        variant: "success",
         title: "Success!",
         description: "Your profile has been updated.",
       });

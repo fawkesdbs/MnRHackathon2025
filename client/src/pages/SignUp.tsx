@@ -24,6 +24,16 @@ export default function SignUp() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (password !== confirmPassword) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Passwords do not match. Please try again.",
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -33,14 +43,12 @@ export default function SignUp() {
         body: JSON.stringify({ name, email, password }),
       });
 
-      console.log("Sign Up Response:", response);
-      console.log("Sign Up Code not OK:", !response.ok);
-
       if (!response.ok) {
         const errData = await response.json();
         throw new Error(errData.error || "Sign up failed");
       }
       toast({
+        variant: "success",
         title: "Success!",
         description: "Your account has been created. Please log in.",
       });
