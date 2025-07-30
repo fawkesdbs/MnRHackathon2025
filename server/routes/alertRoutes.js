@@ -19,7 +19,15 @@ router.get("/user/:userId/critical", authenticateToken, async (req, res) => {
       .request()
       .input("userId", sql.Int, req.params.userId)
       .input("severityLevel", sql.Int, criticalSeverityInt).query(`
-                SELECT a.* FROM dbo.alerts a
+                SELECT 
+                    a.id, 
+                    a.title, 
+                    a.message, 
+                    a.status, 
+                    a.severity, 
+                    a.type, 
+                    a.created_at as timestamp 
+                FROM dbo.alerts a
                 JOIN dbo.monitored_destinations d ON a.destination_id = d.id
                 WHERE d.created_by = @userId AND a.severity = @severityLevel
                 ORDER BY a.created_at DESC;

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import {
@@ -8,9 +8,10 @@ import {
   CardTitle,
 } from "../components/ui/card";
 import { Badge } from "../components/ui/badge";
-import { Clock, MapPin, Route, ShieldAlert } from "lucide-react";
+import { Button } from "../components/ui/button";
+import { Clock, MapPin, Route, ShieldAlert, RefreshCw } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
-import type { Alert as AlertType, MonitoredDestination } from "../types/types";
+import type { Alert as AlertType } from "../types/types";
 import { authFetch } from "../lib/authFetch";
 
 interface TripAnalysis {
@@ -43,76 +44,77 @@ export default function Alerts() {
     () => localStorage.getItem("currentLocation") || ""
   );
 
-  useEffect(() => {
-    const analyzeTrip = async () => {
+  const riskLevelMap: {
+    [key: number]: "Low" | "Medium" | "High" | "Critical";
+  } = {
+    0: "Low",
+    1: "Medium",
+    2: "High",
+    3: "Critical",
+  };
+
+  const fetchTripData = useCallback(
+    async (isManualRefresh = false) => {
       const userId = getUserIdFromToken();
       const token = localStorage.getItem("token");
 
-      if (!token || !userId || !startLocation) {
+      if (!token || !userId) {
         toast({
           variant: "destructive",
-          title: "Error",
-          description: "Could not perform analysis. User or location missing.",
+          title: "Authentication Error",
+          description: "Please log in to view your alerts.",
         });
-        navigate("/dashboard");
+        navigate("/login");
         return;
       }
 
       setIsLoading(true);
 
       try {
-        // --- STEP 1: Fetch destinations directly from the API ---
-        const destRes = await authFetch(
-          `http://localhost:5000/api/monitored-destinations/user/${userId}`,
+        const response = await authFetch(
+          `http://localhost:5000/api/alerts/user/${userId}/trips`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
         );
-        if (!destRes.ok) throw new Error("Failed to fetch your destinations.");
 
-        const destinations: MonitoredDestination[] = await destRes.json();
-
-        if (destinations.length === 0) {
-          setAnalysisResults([]); // Set empty results if no destinations
-          setIsLoading(false);
-          return;
+        if (!response.ok) {
+          throw new Error("Failed to fetch trip data.");
         }
 
-        // --- STEP 2: Call the analysis endpoint with the fetched data ---
-        const analysisResponse = await authFetch(
-          `http://localhost:5000/api/analysis/trip`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-            body: JSON.stringify({
-              startLocation,
-              destinations: destinations.map((d) => ({ location: d.location })),
-            }),
-          }
-        );
+        const data: TripAnalysis[] = await response.json();
+        const formattedData = data.map((trip) => ({
+          ...trip,
+          overallRisk:
+            riskLevelMap[trip.overallRisk as unknown as number] || "Medium",
+        }));
 
-        if (!analysisResponse.ok)
-          throw new Error("Failed to analyze trip data.");
+        setAnalysisResults(formattedData);
 
-        const data: TripAnalysis[] = await analysisResponse.json();
-        setAnalysisResults(data);
+        if (isManualRefresh) {
+          toast({
+            variant: "success",
+            title: "Success",
+            description: "Alerts have been updated.",
+          });
+        }
       } catch (error) {
-        console.error("Analysis failed:", error);
+        console.error("Failed to fetch trip data:", error);
         toast({
           variant: "destructive",
-          title: "Analysis Failed",
-          description: "Could not retrieve live alert data.",
+          title: "Error",
+          description: "Could not retrieve your trip alerts.",
         });
       } finally {
         setIsLoading(false);
       }
-    };
+    },
+    [navigate, toast]
+  );
 
-    analyzeTrip();
-  }, [navigate, toast, startLocation]);
+  useEffect(() => {
+    fetchTripData();
+  }, [fetchTripData]);
 
   const getRiskBadgeColor = (risk: string) => {
     switch (risk) {
@@ -161,14 +163,26 @@ export default function Alerts() {
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900">
-            Live Travel Analysis
-          </h1>
-          <p className="text-gray-600 mt-2">
-            Showing real-time alerts for your trip from{" "}
-            <span className="font-semibold">{startLocation}</span>
-          </p>
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">
+              Live Travel Analysis
+            </h1>
+            <p className="text-gray-600 mt-2">
+              Showing real-time alerts for your trip from{" "}
+              <span className="font-semibold">{startLocation}</span>
+            </p>
+          </div>
+          <Button
+            onClick={() => fetchTripData(true)}
+            disabled={isLoading}
+            variant="outline"
+          >
+            <RefreshCw
+              className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+            />
+            {isLoading ? "Refreshing..." : "Refresh Alerts"}
+          </Button>
         </div>
 
         {isLoading ? (

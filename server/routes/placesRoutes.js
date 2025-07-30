@@ -45,8 +45,18 @@ router.get("/reverse-geocode", async (req, res) => {
 
     // Extract the formatted address from the first result
     if (data.features && data.features.length > 0) {
-      const formattedAddress = data.features[0].properties.formatted;
-      res.json({ location: formattedAddress });
+      const properties = data.features[0].properties;
+      // Construct a "City, Country" string for stability
+      const city = properties.city;
+      const province = properties.state_code;
+      const country = properties.country;
+
+      if (city && country) {
+        res.json({ location: `${city}, ${province}, ${country}` });
+      } else {
+        // Fallback to the original formatted address if city/country are not available
+        res.json({ location: properties.formatted });
+      }
     } else {
       res.status(404).json({ message: "Address not found." });
     }

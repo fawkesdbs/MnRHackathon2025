@@ -196,6 +196,7 @@ export default function Dashboard() {
             created_by: userId,
             location: newDestination.trim(),
             risk_level: "Medium",
+            startLocation: currentLocation,
           }),
         }
       );
