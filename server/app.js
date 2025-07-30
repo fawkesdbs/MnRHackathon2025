@@ -12,6 +12,8 @@ const userRoutes = require("./routes/userRoutes");
 const monitoredDestinationRoutes = require("./routes/monitoredDestinationRoutes");
 const alertRoutes = require("./routes/alertRoutes");
 const healthRoute = require("./routes/health");
+const placesRoutes = require("./routes/placesRoutes");
+const analysisRoutes = require("./routes/analysisRoutes");
 
 // Import the new auth routes
 const authRoutes = require("./routes/auth"); // Add this
@@ -19,7 +21,11 @@ require("./passport"); // Add this to configure Passport
 
 const app = express();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: true,
+  })
+);
 app.use(express.json());
 
 // Add session and passport middleware
@@ -71,6 +77,8 @@ app.get("/api/test-db", async (req, res) => {
 app.use("/api/users", userRoutes);
 app.use("/api/monitored-destinations", monitoredDestinationRoutes);
 app.use("/api/alerts", alertRoutes);
+app.use("/api/places", placesRoutes);
+app.use("/api/analysis", analysisRoutes);
 app.use("/", healthRoute);
 
 const PORT = process.env.PORT || 5000;

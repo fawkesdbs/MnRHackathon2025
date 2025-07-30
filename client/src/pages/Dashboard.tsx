@@ -42,6 +42,7 @@ export default function Dashboard() {
     "Pretoria, South Africa"
   );
   const [newDestination, setNewDestination] = useState("");
+  const [suggestions, setSuggestions] = useState<string[]>([]);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -49,6 +50,29 @@ export default function Dashboard() {
   const [destinations, setDestinations] = useState<MonitoredDestination[]>([]);
   const [criticalAlerts, setCriticalAlerts] = useState<Alert[]>([]);
   const userId = getUserIdFromToken();
+
+  useEffect(() => {
+    if (newDestination.length < 3) {
+      setSuggestions([]);
+      return;
+    }
+
+    const fetchSuggestions = async () => {
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/places/autocomplete?text=${newDestination}`
+        );
+        const data = await response.json();
+        setSuggestions(data);
+      } catch (error) {
+        console.error("Failed to fetch suggestions:", error);
+      }
+    };
+
+    // Debounce the API call to avoid spamming the server on every keystroke
+    const debounceTimeout = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounceTimeout);
+  }, [newDestination]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -98,8 +122,8 @@ export default function Dashboard() {
     fetchData();
   }, [userId, toast]);
 
-  const addDestination = async () => {
-    if (!newDestination.trim() || !userId) return;
+  const addDestination = async (location: string) => {
+    if (!location.trim() || !userId) return;
 
     const token = localStorage.getItem("token");
     try {
@@ -119,7 +143,10 @@ export default function Dashboard() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to add destination.");
+      if (!response.ok) {
+        const errData = await response.json();
+        throw new Error(errData.error || "Failed to add destination.");
+      }
 
       const destResponse = await fetch(
         `http://localhost:5000/api/monitored-destinations/user/${userId}`,
@@ -162,6 +189,13 @@ export default function Dashboard() {
         description: (error as Error).message,
       });
     }
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    addDestination(suggestion);
+    setSuggestions([]);
+    setNewDestination("");
+    setIsAddDialogOpen(false);
   };
 
   const getRiskBadgeColor = (risk: string) => {
@@ -263,18 +297,38 @@ export default function Dashboard() {
                               onChange={(e) =>
                                 setNewDestination(e.target.value)
                               }
-                              onKeyPress={(e) =>
-                                e.key === "Enter" && addDestination()
-                              }
+                              autoComplete="off"
                             />
+                            {/* --- NEW: Suggestions Dropdown --- */}
+                            {suggestions.length > 0 && (
+                              <div className="absolute top-full left-0 right-0 z-10 bg-white border rounded-md shadow-lg mt-1">
+                                {suggestions.map((suggestion, index) => (
+                                  <div
+                                    key={index}
+                                    className="p-2 hover:bg-gray-100 cursor-pointer"
+                                    onClick={() =>
+                                      handleSuggestionClick(suggestion)
+                                    }
+                                  >
+                                    {suggestion}
+                                  </div>
+                                ))}
+                              </div>
+                            )}
                           </div>
                           <div className="flex space-x-2">
-                            <Button onClick={addDestination} className="flex-1">
+                            <Button
+                              onClick={() => addDestination(newDestination)}
+                              className="flex-1"
+                            >
                               Add
                             </Button>
                             <Button
                               variant="outline"
-                              onClick={() => setIsAddDialogOpen(false)}
+                              onClick={() => {
+                                setIsAddDialogOpen(false);
+                                setSuggestions([]);
+                              }}
                             >
                               Cancel
                             </Button>
