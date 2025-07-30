@@ -6,12 +6,10 @@ const router = express.Router();
 // GET all destinations for the logged-in user
 router.get("/user/:userId", authenticateToken, async (req, res) => {
   // Check if the requesting user is the one they're asking for data about
-  if (req.user.id.toString() !== req.params.userId) {
-    return res
-      .status(403)
-      .json({
-        message: "Forbidden: You can only access your own destinations.",
-      });
+  if (req.user.id.toString() !== req.params.userId.toString) {
+    return res.status(403).json({
+      message: "Forbidden: You can only access your own destinations.",
+    });
   }
 
   try {
@@ -33,13 +31,11 @@ router.get("/user/:userId", authenticateToken, async (req, res) => {
 router.post("/", authenticateToken, async (req, res) => {
   try {
     const { created_by, location, risk_level } = req.body;
-    if (req.user.id !== created_by) {
-      return res
-        .status(403)
-        .json({
-          message:
-            "Forbidden: You can only add destinations to your own profile.",
-        });
+    if (req.user.id.toString() !== created_by.toString()) {
+      return res.status(403).json({
+        message:
+          "Forbidden: You can only add destinations to your own profile.",
+      });
     }
 
     const pool = await poolPromise;

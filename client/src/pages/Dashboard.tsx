@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -37,6 +37,7 @@ const getUserIdFromToken = (): number | null => {
 };
 
 export default function Dashboard() {
+  const navigate = useNavigate();
   const { toast } = useToast();
   const [currentLocation, setCurrentLocation] = useState(
     "Pretoria, South Africa"
@@ -395,6 +396,16 @@ export default function Dashboard() {
                   <Button
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-4"
+                    onClick={() => {
+                      const query = new URLSearchParams({
+                        start: currentLocation,
+                        // Pass the locations as a comma-separated string
+                        destinations: destinations
+                          .map((d) => d.location)
+                          .join(","),
+                      }).toString();
+                      navigate(`/alerts?${query}`);
+                    }}
                   >
                     <Route className="w-5 h-5 mr-2" />
                     Analyze Travel Routes

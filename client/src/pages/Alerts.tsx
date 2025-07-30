@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import {
   Card,
@@ -12,7 +12,7 @@ import { Clock, MapPin, Route, ShieldAlert } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
 import type { Alert as AlertType } from "../types/types";
 
-interface Trip {
+interface TripAnalysis {
   id: string;
   from: string;
   to: string;
@@ -21,55 +21,66 @@ interface Trip {
   destinationAlerts: AlertType[];
 }
 
-const getUserIdFromToken = (): number | null => {
-  const token = localStorage.getItem("token");
-  if (!token) return null;
-  try {
-    const payload = JSON.parse(atob(token.split(".")[1]));
-    return payload.id;
-  } catch (e) {
-    return null;
-  }
-};
-
 export default function Alerts() {
   const { toast } = useToast();
-  const [trips, setTrips] = useState<Trip[]>([]);
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [analysisResults, setAnalysisResults] = useState<TripAnalysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const userId = getUserIdFromToken();
+
+  const startLocation = searchParams.get("start");
+  const destinations = searchParams.get("destinations")?.split(",");
 
   useEffect(() => {
-    const fetchTripAlerts = async () => {
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
-      const token = localStorage.getItem("token");
-
-      try {
-        const response = await fetch(
-          `http://localhost:5000/api/alerts/user/${userId}/trips`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-          }
-        );
-        if (!response.ok) throw new Error("Failed to fetch trip alerts.");
-
-        const data = await response.json();
-        setTrips(data);
-      } catch (error) {
+    const analyzeTrip = async () => {
+      if (!startLocation || !destinations || destinations.length === 0) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: (error as Error).message,
+          description: "No trip data provided.",
+        });
+        navigate("/dashboard");
+        return;
+      }
+
+      const token = localStorage.getItem("token");
+      setIsLoading(true);
+
+      try {
+        const response = await fetch(
+          `http://localhost:5000/api/analysis/trip`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+            // The backend expects an object with a 'destinations' array
+            body: JSON.stringify({
+              startLocation,
+              destinations: destinations.map((d) => ({ location: d })),
+            }),
+          }
+        );
+
+        if (!response.ok) throw new Error("Failed to analyze trip data.");
+
+        const data: TripAnalysis[] = await response.json();
+        setAnalysisResults(data);
+      } catch (error) {
+        console.error("Analysis failed:", error);
+        toast({
+          variant: "destructive",
+          title: "Analysis Failed",
+          description: "Could not retrieve live alert data.",
         });
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchTripAlerts();
-  }, [userId, toast]);
+    analyzeTrip();
+  }, [searchParams, toast, navigate]);
 
   const getRiskBadgeColor = (risk: string) => {
     switch (risk) {
@@ -120,24 +131,25 @@ export default function Alerts() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">
-            Travel Alerts Dashboard
+            Live Travel Analysis
           </h1>
           <p className="text-gray-600 mt-2">
-            Monitor risks and alerts for all your planned trips
+            Showing real-time alerts for your trip from{" "}
+            <span className="font-semibold">{startLocation}</span>
           </p>
         </div>
 
         {isLoading ? (
-          <p>Loading alerts...</p>
+          <p>Analyzing routes and destinations...</p>
         ) : (
           <div className="space-y-6">
-            {trips.length > 0 ? (
-              trips.map((trip) => (
+            {analysisResults.length > 0 ? (
+              analysisResults.map((trip) => (
                 <Card key={trip.id} className="shadow-lg border-0">
                   <CardHeader className="pb-4">
                     <div className="flex items-center justify-between">
                       <CardTitle className="text-xl font-bold text-gray-900">
-                        Trip: {trip.from} → {trip.to}
+                        Trip: {trip.to}
                       </CardTitle>
                       <Badge
                         className={`${getRiskBadgeColor(
