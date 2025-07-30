@@ -8,7 +8,7 @@ export default function Navigation() {
   const navigate = useNavigate();
 
   const handleLogout = () => {
-    // In a real app, you'd clear auth tokens here
+    localStorage.removeItem("token");
     navigate("/login");
   };
 

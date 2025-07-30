@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import {
   Card,
@@ -10,7 +10,8 @@ import {
 import { Badge } from "../components/ui/badge";
 import { Clock, MapPin, Route, ShieldAlert } from "lucide-react";
 import { useToast } from "../components/ui/use-toast";
-import type { Alert as AlertType } from "../types/types";
+import type { Alert as AlertType, MonitoredDestination } from "../types/types";
+import { authFetch } from "../lib/authFetch";
 
 interface TripAnalysis {
   id: string;
@@ -21,33 +22,64 @@ interface TripAnalysis {
   destinationAlerts: AlertType[];
 }
 
+const getUserIdFromToken = (): number | null => {
+  const token = localStorage.getItem("token");
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(atob(token.split(".")[1]));
+    return payload.id;
+  } catch (e) {
+    return null;
+  }
+};
+
 export default function Alerts() {
   const { toast } = useToast();
   const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
   const [analysisResults, setAnalysisResults] = useState<TripAnalysis[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  const startLocation = searchParams.get("start");
-  const destinations = searchParams.get("destinations")?.split(",");
+  const [startLocation] = useState(
+    () => localStorage.getItem("currentLocation") || ""
+  );
 
   useEffect(() => {
     const analyzeTrip = async () => {
-      if (!startLocation || !destinations || destinations.length === 0) {
+      const userId = getUserIdFromToken();
+      const token = localStorage.getItem("token");
+
+      if (!token || !userId || !startLocation) {
         toast({
           variant: "destructive",
           title: "Error",
-          description: "No trip data provided.",
+          description: "Could not perform analysis. User or location missing.",
         });
         navigate("/dashboard");
         return;
       }
 
-      const token = localStorage.getItem("token");
       setIsLoading(true);
 
       try {
-        const response = await fetch(
+        // --- STEP 1: Fetch destinations directly from the API ---
+        const destRes = await authFetch(
+          `http://localhost:5000/api/monitored-destinations/user/${userId}`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+          }
+        );
+        if (!destRes.ok) throw new Error("Failed to fetch your destinations.");
+
+        const destinations: MonitoredDestination[] = await destRes.json();
+
+        if (destinations.length === 0) {
+          setAnalysisResults([]); // Set empty results if no destinations
+          setIsLoading(false);
+          return;
+        }
+
+        // --- STEP 2: Call the analysis endpoint with the fetched data ---
+        const analysisResponse = await authFetch(
           `http://localhost:5000/api/analysis/trip`,
           {
             method: "POST",
@@ -55,17 +87,17 @@ export default function Alerts() {
               "Content-Type": "application/json",
               Authorization: `Bearer ${token}`,
             },
-            // The backend expects an object with a 'destinations' array
             body: JSON.stringify({
               startLocation,
-              destinations: destinations.map((d) => ({ location: d })),
+              destinations: destinations.map((d) => ({ location: d.location })),
             }),
           }
         );
 
-        if (!response.ok) throw new Error("Failed to analyze trip data.");
+        if (!analysisResponse.ok)
+          throw new Error("Failed to analyze trip data.");
 
-        const data: TripAnalysis[] = await response.json();
+        const data: TripAnalysis[] = await analysisResponse.json();
         setAnalysisResults(data);
       } catch (error) {
         console.error("Analysis failed:", error);
@@ -80,7 +112,7 @@ export default function Alerts() {
     };
 
     analyzeTrip();
-  }, [searchParams, toast, navigate]);
+  }, [navigate, toast, startLocation]);
 
   const getRiskBadgeColor = (risk: string) => {
     switch (risk) {

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import Navigation from "../components/Navigation";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
@@ -23,6 +23,7 @@ import { Badge } from "../components/ui/badge";
 import { Plus, X, MapPin, AlertTriangle, Clock, Route } from "lucide-react";
 import type { MonitoredDestination, Alert } from "../types/types";
 import { useToast } from "../components/ui/use-toast";
+import { authFetch } from "../lib/authFetch";
 
 // Helper function to decode the JWT and get the user ID
 const getUserIdFromToken = (): number | null => {
@@ -37,10 +38,9 @@ const getUserIdFromToken = (): number | null => {
 };
 
 export default function Dashboard() {
-  const navigate = useNavigate();
   const { toast } = useToast();
   const [currentLocation, setCurrentLocation] = useState(
-    "Pretoria, South Africa"
+    () => localStorage.getItem("currentLocation") || "Pretoria, South Africa"
   );
   const [newDestination, setNewDestination] = useState("");
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -52,6 +52,51 @@ export default function Dashboard() {
   const [criticalAlerts, setCriticalAlerts] = useState<Alert[]>([]);
   const userId = getUserIdFromToken();
 
+  const riskLevelMap: {
+    [key: number]: "Low" | "Medium" | "High" | "Critical";
+  } = {
+    0: "Low",
+    1: "Medium",
+    2: "High",
+    3: "Critical",
+  };
+
+  useEffect(() => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+
+          try {
+            const response = await authFetch(
+              `http://localhost:5000/api/places/reverse-geocode?lat=${latitude}&lon=${longitude}`
+            );
+
+            if (!response.ok) {
+              console.error("Failed to reverse geocode location.");
+              return;
+            }
+
+            const data = await response.json();
+            const locationString = data.location;
+
+            setCurrentLocation(locationString);
+            localStorage.setItem("currentLocation", locationString);
+          } catch (error) {
+            console.error("Error fetching location name:", error);
+          }
+        },
+        () => {
+          console.log("Geolocation permission denied by user.");
+        }
+      );
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("currentLocation", currentLocation);
+  }, [currentLocation]);
+
   useEffect(() => {
     if (newDestination.length < 3) {
       setSuggestions([]);
@@ -60,7 +105,7 @@ export default function Dashboard() {
 
     const fetchSuggestions = async () => {
       try {
-        const response = await fetch(
+        const response = await authFetch(
           `http://localhost:5000/api/places/autocomplete?text=${newDestination}`
         );
         const data = await response.json();
@@ -88,16 +133,19 @@ export default function Dashboard() {
       try {
         // Fetch both destinations and alerts at the same time
         const [destinationsRes, alertsRes] = await Promise.all([
-          fetch(
+          authFetch(
             `http://localhost:5000/api/monitored-destinations/user/${userId}`,
             {
               headers: { Authorization: `Bearer ${token}` },
             }
           ),
-          fetch(`http://localhost:5000/api/alerts/user/${userId}/critical`, {
-            // Assuming a new endpoint for critical alerts
-            headers: { Authorization: `Bearer ${token}` },
-          }),
+          authFetch(
+            `http://localhost:5000/api/alerts/user/${userId}/critical`,
+            {
+              // Assuming a new endpoint for critical alerts
+              headers: { Authorization: `Bearer ${token}` },
+            }
+          ),
         ]);
 
         if (!destinationsRes.ok)
@@ -107,7 +155,15 @@ export default function Dashboard() {
         const destinationsData = await destinationsRes.json();
         const alertsData = await alertsRes.json();
 
-        setDestinations(destinationsData);
+        const formattedDestinations = destinationsData.map(
+          (dest: MonitoredDestination) => ({
+            ...dest,
+            risk_level:
+              riskLevelMap[dest.risk_level as unknown as number] || "Medium",
+          })
+        );
+
+        setDestinations(formattedDestinations);
         setCriticalAlerts(alertsData);
       } catch (error) {
         toast({
@@ -123,12 +179,12 @@ export default function Dashboard() {
     fetchData();
   }, [userId, toast]);
 
-  const addDestination = async (location: string) => {
-    if (!location.trim() || !userId) return;
+  const addDestination = async () => {
+    if (!newDestination.trim() || !userId) return;
 
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch(
+      const response = await authFetch(
         "http://localhost:5000/api/monitored-destinations",
         {
           method: "POST",
@@ -149,16 +205,18 @@ export default function Dashboard() {
         throw new Error(errData.error || "Failed to add destination.");
       }
 
-      const destResponse = await fetch(
-        `http://localhost:5000/api/monitored-destinations/user/${userId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const updatedDestinations = await destResponse.json();
-      setDestinations(updatedDestinations);
+      const newDest = await response.json();
+
+      setDestinations((prevDestinations) => [...prevDestinations, newDest]);
 
       setNewDestination("");
+      setSuggestions([]);
       setIsAddDialogOpen(false);
-      toast({ title: "Success", description: "Destination added." });
+      toast({
+        variant: "success",
+        title: "Success",
+        description: "Destination added.",
+      });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -181,8 +239,15 @@ export default function Dashboard() {
 
       if (!response.ok) throw new Error("Failed to remove destination.");
 
-      setDestinations(destinations.filter((dest) => dest.id.toString() !== id));
-      toast({ title: "Success", description: "Destination removed." });
+      setDestinations((destinations) =>
+        destinations.filter((dest) => dest.id.toString() !== id.toString())
+      );
+
+      toast({
+        variant: "success",
+        title: "Success",
+        description: "Destination removed.",
+      });
     } catch (error) {
       toast({
         variant: "destructive",
@@ -193,10 +258,8 @@ export default function Dashboard() {
   };
 
   const handleSuggestionClick = (suggestion: string) => {
-    addDestination(suggestion);
+    setNewDestination(suggestion);
     setSuggestions([]);
-    setNewDestination("");
-    setIsAddDialogOpen(false);
   };
 
   const getRiskBadgeColor = (risk: string) => {
@@ -318,10 +381,7 @@ export default function Dashboard() {
                             )}
                           </div>
                           <div className="flex space-x-2">
-                            <Button
-                              onClick={() => addDestination(newDestination)}
-                              className="flex-1"
-                            >
+                            <Button onClick={addDestination} className="flex-1">
                               Add
                             </Button>
                             <Button
@@ -396,16 +456,6 @@ export default function Dashboard() {
                   <Button
                     size="lg"
                     className="w-full bg-primary hover:bg-primary/90 text-white font-semibold py-4"
-                    onClick={() => {
-                      const query = new URLSearchParams({
-                        start: currentLocation,
-                        // Pass the locations as a comma-separated string
-                        destinations: destinations
-                          .map((d) => d.location)
-                          .join(","),
-                      }).toString();
-                      navigate(`/alerts?${query}`);
-                    }}
                   >
                     <Route className="w-5 h-5 mr-2" />
                     Analyze Travel Routes

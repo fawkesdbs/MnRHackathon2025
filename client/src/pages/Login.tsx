@@ -13,6 +13,7 @@ import {
 import { MapPin, Shield } from "lucide-react";
 import GoogleIcon from "../components/GoogleIcon";
 import { useToast } from "../components/ui/use-toast";
+import { authFetch } from "../lib/authFetch";
 
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -26,7 +27,7 @@ export default function Login() {
     setIsLoading(true); // Clear previous errors
 
     try {
-      const response = await fetch("http://localhost:5000/api/auth/login", {
+      const response = await authFetch("http://localhost:5000/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

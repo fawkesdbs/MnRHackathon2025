@@ -6,7 +6,7 @@ const router = express.Router();
 // GET all destinations for the logged-in user
 router.get("/user/:userId", authenticateToken, async (req, res) => {
   // Check if the requesting user is the one they're asking for data about
-  if (req.user.id.toString() !== req.params.userId.toString) {
+  if (req.user.id.toString() !== req.params.userId.toString()) {
     return res.status(403).json({
       message: "Forbidden: You can only access your own destinations.",
     });
@@ -38,12 +38,14 @@ router.post("/", authenticateToken, async (req, res) => {
       });
     }
 
+    riskLevelMap = { Low: 0, Medium: 1, High: 2, Critical: 3 };
+    riskLevelInt = riskLevelMap[risk_level] || 1;
     const pool = await poolPromise;
     const result = await pool
       .request()
       .input("created_by", sql.Int, created_by)
       .input("location", sql.NVarChar, location)
-      .input("risk_level", sql.NVarChar, risk_level).query(`
+      .input("risk_level", sql.Int, riskLevelInt).query(`
         INSERT INTO dbo.monitored_destinations (location, risk_level, last_checked, created_by, created_at, updated_at) 
         VALUES (@location, @risk_level, GETDATE(), @created_by, GETDATE(), GETDATE());
         SELECT SCOPE_IDENTITY() AS id;

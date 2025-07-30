@@ -34,6 +34,7 @@ import { Switch } from "../components/ui/switch";
 import { Separator } from "../components/ui/separator";
 import { User, Lock, Bell, Save, Trash2, ShieldAlert } from "lucide-react";
 import { useToast } from "../hooks/use-toast";
+import { authFetch } from "../lib/authFetch";
 
 export default function Profile() {
   const [formData, setFormData] = useState({
@@ -55,7 +56,7 @@ export default function Profile() {
       if (!token) return;
 
       try {
-        const response = await fetch("http://localhost:5000/api/users/me", {
+        const response = await authFetch("http://localhost:5000/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error("Failed to fetch user data.");
@@ -116,14 +117,17 @@ export default function Profile() {
         newPassword: formData.newPassword,
       };
 
-      const response = await fetch("http://localhost:5000/api/users/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(payload),
-      });
+      const response = await authFetch(
+        "http://localhost:5000/api/users/profile",
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(payload),
+        }
+      );
 
       if (!response.ok) {
         const errData = await response.json();
@@ -163,10 +167,13 @@ export default function Profile() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch("http://localhost:5000/api/users/profile", {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const response = await authFetch(
+        "http://localhost:5000/api/users/profile",
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
 
       if (!response.ok) {
         const errData = await response.json();
