@@ -159,7 +159,7 @@ export default function Alerts() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray">
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -217,7 +217,7 @@ export default function Alerts() {
                           {trip.routeAlerts.map((alert) => (
                             <div
                               key={alert.id}
-                              className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg border"
+                              className="flex items-start space-x-3 p-3 bg-gray rounded-lg border"
                             >
                               <span className="text-lg mt-0.5">
                                 {getSeverityIcon(alert.severity)}
@@ -262,7 +262,7 @@ export default function Alerts() {
                           {trip.destinationAlerts.map((alert) => (
                             <div
                               key={alert.id}
-                              className="flex items-start space-x-3 p-3 bg-gray-50 rounded-lg border"
+                              className="flex items-start space-x-3 p-3 bg-gray rounded-lg border"
                             >
                               <span className="text-lg mt-0.5">
                                 {getSeverityIcon(alert.severity)}

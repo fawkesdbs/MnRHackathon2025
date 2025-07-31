@@ -2,6 +2,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
 import { Shield, MapPin, LogOut, BarChart3, User, Home } from "lucide-react";
 import { cn } from "../lib/utils";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 export default function Navigation() {
   const location = useLocation();
@@ -19,7 +20,7 @@ export default function Navigation() {
   ];
 
   return (
-    <header className="bg-white border-b border-gray-200 shadow-sm">
+    <header className="bg-background border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -50,7 +51,7 @@ export default function Navigation() {
                     "flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors",
                     isActive
                       ? "bg-primary text-white"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray"
                   )}
                 >
                   <Icon className="w-4 h-4" />
@@ -72,7 +73,7 @@ export default function Navigation() {
                     "p-2 rounded-lg transition-colors",
                     location.pathname === item.path
                       ? "bg-primary text-white"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray"
                   )}
                 >
                   <Icon className="w-5 h-5" />
@@ -82,15 +83,18 @@ export default function Navigation() {
           </nav>
 
           {/* Logout Button */}
-          <Button
-            onClick={handleLogout}
-            variant="outline"
-            size="sm"
-            className="flex items-center space-x-2 border-gray-200 text-gray-600 hover:text-destructive"
-          >
-            <LogOut className="w-4 h-4" />
-            <span className="hidden sm:inline">Logout</span>
-          </Button>
+          <div className="flex items-center space-x-2">
+            <ThemeSwitcher />
+            <Button
+              onClick={handleLogout}
+              variant="outline"
+              size="sm"
+              className="flex items-center space-x-2 border-gray-200 text-gray-600 hover:text-critical hover:border-critical"
+            >
+              <LogOut className="w-4 h-4" />
+              <span className="hidden sm:inline">Logout</span>
+            </Button>
+          </div>
         </div>
       </div>
     </header>

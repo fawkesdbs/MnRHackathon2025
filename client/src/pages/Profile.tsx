@@ -199,7 +199,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray">
       <Navigation />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -253,7 +253,7 @@ export default function Profile() {
                       type="email"
                       value={formData.email}
                       disabled
-                      className="border-gray-200 bg-gray-50 text-gray-500"
+                      className="border-gray-200 bg-gray text-gray-500"
                     />
                   </div>
                 </div>
@@ -396,13 +396,13 @@ export default function Profile() {
             </form>
           </CardContent>
         </Card>
-        <Card className="shadow-lg border-destructive mt-4 bg-red-100">
+        <Card className="shadow-lg border-destructive mt-4 bg-danger">
           <CardHeader>
-            <CardTitle className="flex items-center space-x-2 text-destructive">
+            <CardTitle className="flex items-center space-x-2 text-critical">
               <ShieldAlert className="w-5 h-5" />
               <span>Danger Zone</span>
             </CardTitle>
-            <CardDescription>
+            <CardDescription className="text-critical">
               Permanently delete your account and all associated data. This
               action cannot be undone.
             </CardDescription>

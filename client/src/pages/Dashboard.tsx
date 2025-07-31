@@ -291,7 +291,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray">
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -366,7 +366,7 @@ export default function Dashboard() {
                             />
                             {/* --- NEW: Suggestions Dropdown --- */}
                             {suggestions.length > 0 && (
-                              <div className="absolute top-full left-0 right-0 z-10 bg-white border rounded-md shadow-lg mt-1">
+                              <div className="absolute top-full left-0 right-0 z-10 bg-gray border rounded-md shadow-lg mt-1">
                                 {suggestions.map((suggestion, index) => (
                                   <div
                                     key={index}
@@ -407,7 +407,7 @@ export default function Dashboard() {
                       destinations.map((destination) => (
                         <div
                           key={destination.id}
-                          className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border"
+                          className="flex items-center justify-between p-3 bg-gray rounded-lg border"
                         >
                           <div className="flex items-center space-x-3">
                             <MapPin className="w-4 h-4 text-gray-500" />
@@ -484,11 +484,11 @@ export default function Dashboard() {
                     criticalAlerts.slice(0, 3).map((alert) => (
                       <div
                         key={alert.id}
-                        className="flex items-start space-x-3 p-3 bg-red-50 border border-red-200 rounded-lg"
+                        className="flex items-start space-x-3 p-3 bg-danger border border-red-200 rounded-lg"
                       >
                         <AlertTriangle className="w-4 h-4 text-critical mt-0.5 flex-shrink-0" />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900">
+                          <p className="text-sm font-medium text-foreground">
                             {alert.title}
                           </p>
                           <div className="flex items-center space-x-2 mt-1">
