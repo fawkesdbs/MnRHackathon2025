@@ -6,7 +6,11 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      "/server": "http://localhost:5000", // Change to your backend URL
+      "/server": {
+        target: "https://n8nwn765-5000.inc1.devtunnels.ms/",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/server/, ""),
+      },
     },
   },
 });

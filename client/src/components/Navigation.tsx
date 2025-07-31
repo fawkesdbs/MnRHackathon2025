@@ -1,12 +1,22 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/button";
-import { Shield, MapPin, LogOut, BarChart3, User, Home } from "lucide-react";
+import {
+  Shield,
+  MapPin,
+  LogOut,
+  BarChart3,
+  User,
+  Home,
+  Menu,
+} from "lucide-react";
 import { cn } from "../lib/utils";
 import { ThemeSwitcher } from "./ThemeSwitcher";
+import { useState } from "react";
 
 export default function Navigation() {
   const location = useLocation();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleLogout = () => {
     localStorage.removeItem("token");
@@ -20,7 +30,7 @@ export default function Navigation() {
   ];
 
   return (
-    <header className="bg-background border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-background border-b border-gray-200 shadow-sm">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-16">
           {/* Logo */}
@@ -61,42 +71,74 @@ export default function Navigation() {
             })}
           </nav>
 
-          {/* Mobile Navigation */}
-          <nav className="flex md:hidden space-x-1">
+          <div className="flex items-center space-x-2">
+            {/* Right side controls */}
+            <div className="hidden md:flex items-center space-x-2">
+              <ThemeSwitcher />
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2 hover:border-critical hover:text-critical"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </Button>
+            </div>
+
+            {/* Hamburger Menu */}
+            <div className="md:hidden">
+              <Button
+                onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+                variant="ghost"
+                size="icon"
+              >
+                <Menu className="w-6 h-6" />
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Mobile Menu */}
+      {isMobileMenuOpen && (
+        <div className="absolute right-0 w-1/2 md:hidden bg-background dark:bg-gray-950 border-t border-l border-b border-gray-200 dark:border-gray-800 rounded-b-lg shadow-lg">
+          <nav className="flex flex-col space-y-1 p-4">
             {navItems.map((item) => {
               const Icon = item.icon;
+              const isActive = location.pathname === item.path;
               return (
                 <Link
                   key={item.path}
                   to={item.path}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
-                    "p-2 rounded-lg transition-colors",
-                    location.pathname === item.path
+                    "flex items-center space-x-3 px-3 py-2 rounded-lg text-base font-medium transition-colors",
+                    isActive
                       ? "bg-primary text-white"
-                      : "text-gray-600 hover:text-gray-900 hover:bg-gray"
+                      : "text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800"
                   )}
                 >
                   <Icon className="w-5 h-5" />
+                  <span>{item.label}</span>
                 </Link>
               );
             })}
+            <div className="border-t border-gray-200 dark:border-gray-800 pt-4 mt-4 flex items-center justify-between">
+              <ThemeSwitcher />
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                size="sm"
+                className="flex items-center space-x-2 hover:border-critical hover:text-critical"
+              >
+                <LogOut className="w-4 h-4" />
+                <span>Logout</span>
+              </Button>
+            </div>
           </nav>
-
-          {/* Logout Button */}
-          <div className="flex items-center space-x-2">
-            <ThemeSwitcher />
-            <Button
-              onClick={handleLogout}
-              variant="outline"
-              size="sm"
-              className="flex items-center space-x-2 border-gray-200 text-gray-600 hover:text-critical hover:border-critical"
-            >
-              <LogOut className="w-4 h-4" />
-              <span className="hidden sm:inline">Logout</span>
-            </Button>
-          </div>
         </div>
-      </div>
+      )}
     </header>
   );
 }

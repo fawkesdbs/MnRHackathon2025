@@ -56,7 +56,7 @@ export default function Profile() {
       if (!token) return;
 
       try {
-        const response = await authFetch("http://localhost:5000/api/users/me", {
+        const response = await authFetch("/server/api/users/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (!response.ok) throw new Error("Failed to fetch user data.");
@@ -117,17 +117,14 @@ export default function Profile() {
         newPassword: formData.newPassword,
       };
 
-      const response = await authFetch(
-        "http://localhost:5000/api/users/profile",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        }
-      );
+      const response = await authFetch("/server/api/users/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
 
       if (!response.ok) {
         const errData = await response.json();
@@ -167,13 +164,10 @@ export default function Profile() {
     setIsLoading(true);
     try {
       const token = localStorage.getItem("token");
-      const response = await authFetch(
-        "http://localhost:5000/api/users/profile",
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await authFetch("/server/api/users/profile", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!response.ok) {
         const errData = await response.json();
@@ -199,7 +193,7 @@ export default function Profile() {
   };
 
   return (
-    <div className="min-h-screen bg-gray">
+    <div className="min-h-screen bg-gradient-to-br from-gray via-background to-gray">
       <Navigation />
 
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">

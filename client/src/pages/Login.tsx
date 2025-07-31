@@ -27,7 +27,7 @@ export default function Login() {
     setIsLoading(true); // Clear previous errors
 
     try {
-      const response = await authFetch("http://localhost:5000/api/auth/login", {
+      const response = await authFetch("/server/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -60,7 +60,7 @@ export default function Login() {
   };
 
   const handleGoogleLogin = () => {
-    window.location.href = "http://localhost:5000/api/auth/google";
+    window.location.href = "/server/api/auth/google";
   };
 
   return (

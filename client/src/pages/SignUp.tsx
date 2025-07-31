@@ -38,14 +38,11 @@ export default function SignUp() {
     setIsLoading(true);
 
     try {
-      const response = await authFetch(
-        "http://localhost:5000/api/auth/register",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
-        }
-      );
+      const response = await authFetch("/server/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
 
       if (!response.ok) {
         const errData = await response.json();

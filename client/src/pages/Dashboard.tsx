@@ -20,7 +20,15 @@ import {
   DialogTrigger,
 } from "../components/ui/dialog";
 import { Badge } from "../components/ui/badge";
-import { Plus, X, MapPin, AlertTriangle, Clock, Route } from "lucide-react";
+import {
+  Plus,
+  X,
+  MapPin,
+  AlertTriangle,
+  Clock,
+  Route,
+  RefreshCw,
+} from "lucide-react";
 import type { MonitoredDestination, Alert } from "../types/types";
 import { useToast } from "../components/ui/use-toast";
 import { authFetch } from "../lib/authFetch";
@@ -69,7 +77,7 @@ export default function Dashboard() {
 
           try {
             const response = await authFetch(
-              `http://localhost:5000/api/places/reverse-geocode?lat=${latitude}&lon=${longitude}`
+              `/server/api/places/reverse-geocode?lat=${latitude}&lon=${longitude}`
             );
 
             if (!response.ok) {
@@ -106,7 +114,7 @@ export default function Dashboard() {
     const fetchSuggestions = async () => {
       try {
         const response = await authFetch(
-          `http://localhost:5000/api/places/autocomplete?text=${newDestination}`
+          `/server/api/places/autocomplete?text=${newDestination}`
         );
         const data = await response.json();
         setSuggestions(data);
@@ -133,19 +141,13 @@ export default function Dashboard() {
       try {
         // Fetch both destinations and alerts at the same time
         const [destinationsRes, alertsRes] = await Promise.all([
-          authFetch(
-            `http://localhost:5000/api/monitored-destinations/user/${userId}`,
-            {
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          ),
-          authFetch(
-            `http://localhost:5000/api/alerts/user/${userId}/critical`,
-            {
-              // Assuming a new endpoint for critical alerts
-              headers: { Authorization: `Bearer ${token}` },
-            }
-          ),
+          authFetch(`/server/api/monitored-destinations/user/${userId}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          authFetch(`/server/api/alerts/user/${userId}/critical`, {
+            // Assuming a new endpoint for critical alerts
+            headers: { Authorization: `Bearer ${token}` },
+          }),
         ]);
 
         if (!destinationsRes.ok)
@@ -184,22 +186,19 @@ export default function Dashboard() {
 
     const token = localStorage.getItem("token");
     try {
-      const response = await authFetch(
-        "http://localhost:5000/api/monitored-destinations",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({
-            created_by: userId,
-            location: newDestination.trim(),
-            risk_level: "Medium",
-            startLocation: currentLocation,
-          }),
-        }
-      );
+      const response = await authFetch("/server/api/monitored-destinations", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          created_by: userId,
+          location: newDestination.trim(),
+          risk_level: "Medium",
+          startLocation: currentLocation,
+        }),
+      });
 
       if (!response.ok) {
         const errData = await response.json();
@@ -230,13 +229,10 @@ export default function Dashboard() {
   const removeDestination = async (id: string) => {
     const token = localStorage.getItem("token");
     try {
-      const response = await fetch(
-        `http://localhost:5000/api/monitored-destinations/${id}`,
-        {
-          method: "DELETE",
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await fetch(`/server/api/monitored-destinations/${id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
 
       if (!response.ok) throw new Error("Failed to remove destination.");
 
@@ -291,7 +287,7 @@ export default function Dashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-gray">
+    <div className="min-h-screen bg-gradient-to-br from-gray via-background to-gray">
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -402,7 +398,10 @@ export default function Dashboard() {
 
                   <div className="space-y-2">
                     {isLoading ? (
-                      <p>Loading...</p>
+                      <div className="text-center py-8 text-gray-500">
+                        <RefreshCw className="w-12 h-12 mx-auto mb-2 animate-spin text-gray-300" />
+                        <p>Loading your destinations</p>
+                      </div>
                     ) : (
                       destinations.map((destination) => (
                         <div
@@ -479,7 +478,10 @@ export default function Dashboard() {
               <CardContent>
                 <div className="space-y-3">
                   {isLoading ? (
-                    <p>Loading alerts...</p>
+                    <div className="text-center py-6 text-gray-500">
+                      <RefreshCw className="w-8 h-8 mx-auto animate-spin mb-2 text-gray-300" />
+                      <p className="text-sm">Loading critical alerts...</p>
+                    </div>
                   ) : (
                     criticalAlerts.slice(0, 3).map((alert) => (
                       <div

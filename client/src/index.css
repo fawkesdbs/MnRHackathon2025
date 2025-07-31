@@ -5,7 +5,7 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --gray-50: 210 20% 98%;
+    --gray-50: 222.2 20% 93%;
     --foreground: 222.2 84% 4.9%;
 
     --card: 0 0% 100%;
@@ -17,7 +17,7 @@
     --primary: 210 100% 45%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
+    --secondary: 0 0% 100%;
     --secondary-foreground: 222.2 47.4% 11.2%;
 
     --muted: 210 40% 96.1%;
@@ -57,7 +57,7 @@
 
   .dark {
     --background: 222.2 84% 4.9%;
-    --gray-50: 222.2 84% 14.4%;
+    --gray-50: 222.2 84% 9.5%;
     --foreground: 210 40% 98%;
 
     --card: 222.2 84% 4.9%;
@@ -104,5 +104,14 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  html {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  html::-webkit-scrollbar {
+    display: none;
   }
 }

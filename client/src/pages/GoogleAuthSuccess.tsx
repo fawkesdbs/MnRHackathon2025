@@ -15,7 +15,7 @@ const GoogleAuthSuccess = () => {
   }, [token, navigate]);
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
+    <div className="bg-gradient-to-br from-gray via-background to-gray flex items-center justify-center min-h-screen">
       <p>Authenticating...</p>
     </div>
   );

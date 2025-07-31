@@ -72,7 +72,7 @@ export default function Alerts() {
 
       try {
         const response = await authFetch(
-          `http://localhost:5000/api/alerts/user/${userId}/trips`,
+          `/server/api/alerts/user/${userId}/trips`,
           {
             headers: { Authorization: `Bearer ${token}` },
           }
@@ -159,7 +159,7 @@ export default function Alerts() {
   };
 
   return (
-    <div className="min-h-screen bg-gray">
+    <div className="min-h-screen bg-gradient-to-br from-gray via-background to-gray">
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -186,7 +186,11 @@ export default function Alerts() {
         </div>
 
         {isLoading ? (
-          <p>Analyzing routes and destinations...</p>
+          <div className="text-center py-16 text-gray-500">
+            <RefreshCw className="w-12 h-12 mx-auto mb-4 animate-spin text-gray-300" />
+            <h2 className="text-xl font-semibold">Loading trips...</h2>
+            <p>Please wait.</p>
+          </div>
         ) : (
           <div className="space-y-6">
             {analysisResults.length > 0 ? (
