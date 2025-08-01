@@ -274,8 +274,15 @@ export default function Dashboard() {
     }
   };
 
-  const formatTimeAgo = (date: Date) => {
+  const formatTimeAgo = (date: Date | string | undefined) => {
+    if (!date) return "a while ago";
+
     const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return "a while ago";
+    }
+
     const now = new Date();
     const diffMs = now.getTime() - dateObj.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));

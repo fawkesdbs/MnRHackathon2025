@@ -105,9 +105,9 @@ router.delete("/profile", authenticateToken, async (req, res) => {
     try {
       const request = new sql.Request(transaction);
       await request
-        .input("userIdForDest", sql.Int, userId)
+        .input("userIdForDestLink", sql.Int, userId)
         .query(
-          "DELETE FROM dbo.monitored_destinations WHERE created_by = @userIdForDest"
+          "DELETE FROM dbo.user_destinations WHERE user_id = @userIdForDestLink"
         );
 
       await request

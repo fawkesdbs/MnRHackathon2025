@@ -146,8 +146,15 @@ export default function Alerts() {
     }
   };
 
-  const formatTimeAgo = (date: Date | string) => {
+  const formatTimeAgo = (date: Date | string | undefined) => {
+    if (!date) return "a while ago";
+
     const dateObj = typeof date === "string" ? new Date(date) : date;
+
+    if (isNaN(dateObj.getTime())) {
+      return "a while ago";
+    }
+
     const now = new Date();
     const diffMs = now.getTime() - dateObj.getTime();
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
@@ -163,7 +170,7 @@ export default function Alerts() {
       <Navigation />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div className="flex justify-between items-center mb-8 gap-2">
           <div>
             <h1 className="text-3xl font-bold text-gray-900">
               Live Travel Analysis
@@ -179,9 +186,11 @@ export default function Alerts() {
             variant="outline"
           >
             <RefreshCw
-              className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+              className={`w-4 h-4 md:mr-2 ${isLoading ? "animate-spin" : ""}`}
             />
-            {isLoading ? "Refreshing..." : "Refresh Alerts"}
+            <span className="hidden md:inline">
+              {isLoading ? "Refreshing..." : "Refresh Alerts"}
+            </span>
           </Button>
         </div>
 

@@ -15,6 +15,7 @@ const healthRoute = require("./routes/health");
 const placesRoutes = require("./routes/placesRoutes");
 const analysisRoutes = require("./routes/analysisRoutes");
 const aiRoutes = require("./routes/aiRoutes");
+const hotspotRoutes = require("./routes/hotspotRoutes");
 
 // Import the new auth routes
 const authRoutes = require("./routes/auth"); // Add this
@@ -80,7 +81,8 @@ app.use("/api/monitored-destinations", monitoredDestinationRoutes);
 app.use("/api/alerts", alertRoutes);
 app.use("/api/places", placesRoutes);
 app.use("/api/analysis", analysisRoutes);
-app.use("/api/ai", aiRoutes); 
+app.use("/api/ai", aiRoutes);
+app.use("/api/hotspots", hotspotRoutes); 
 app.use("/", healthRoute);
 
 const PORT = process.env.PORT || 5000;

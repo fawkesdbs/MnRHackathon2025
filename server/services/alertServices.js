@@ -1,149 +1,72 @@
-const fetch = require("node-fetch");
-
-// const GNEWS_API_KEY = process.env.GNEWS_API_KEY;
-const WEATHERAPI_KEY = process.env.WEATHERAPI_KEY;
-const NEWSDATA_API_KEY = process.env.NEWSDATA_API_KEY;
-
-const getAiSummarizedAlerts = async (articles, alertType, req) => {
-  if (!articles || articles.length === 0) {
-    return [];
-  }
-
-  const maxRetries = 3;
-  let attempt = 0;
-
-  while (attempt < maxRetries) {
-    try {
-      const response = await fetch(
-        "http://localhost:5000/api/ai/summarize-alerts",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: req.headers.authorization,
-          },
-          body: JSON.stringify({ articles, alertType }),
-        }
-      );
-
-      if (response.ok) {
-        return response.json();
-      }
-
-      if (response.status === 503) {
-        attempt++;
-        if (attempt < maxRetries) {
-          const delay = Math.pow(2, attempt) * 1000;
-          console.log(
-            `AI model overloaded. Retrying in ${delay / 1000} seconds...`
-          );
-          await new Promise((res) => setTimeout(res, delay));
-          continue;
-        }
-      }
-
-      console.error("AI summarization failed with status:", response.status);
-      return [];
-    } catch (error) {
-      console.error(`AI summarization failed for ${alertType}:`, error);
-      return [];
-    }
-  }
-
-  console.error("AI summarization failed after all retries.");
-  return [];
-};
-
 const getTrafficAlerts = async (start, destination, req) => {
-  const startCity = start;
-  const destCity = destination;
-  const query = `(${startCity} OR ${destCity}) AND (road closure OR traffic OR crash OR highway delay)`;
-
-  const url = `https://newsdata.io/api/1/latest?apikey=${NEWSDATA_API_KEY}&q=${encodeURIComponent(
-    query
-  )}&language=en`;
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.results && Array.isArray(data.results)) {
-      const formattedArticles = data.results.map((article) => ({
-        title: article.title,
-        content: article.description || article.content || "",
-      }));
-      console.log(`Traffic from ${startCity} to ${destCity}`);
-      console.log(formattedArticles);
-      return await getAiSummarizedAlerts(formattedArticles, "Route", req);
-    }
-    return [];
-  } catch (error) {
-    console.error("NewsData.io traffic error:", error);
-    return [];
-  }
-};
-
-const getNewsAlerts = async (location, req) => {
-  const city = location;
-  const query = `${city} AND (protest OR strike OR unrest OR security alert)`;
-
-  const url = `https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&q=${encodeURIComponent(
-    query
-  )}&language=en`;
-
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    if (data.results && Array.isArray(data.results)) {
-      const formattedArticles = data.results.map((article) => ({
-        title: article.title,
-        content: article.description || article.content || "",
-      }));
-      console.log(`News alerts for ${city}`);
-      console.log(formattedArticles);
-      return await getAiSummarizedAlerts(formattedArticles, "Destination", req);
-    }
-    return [];
-  } catch (error) {
-    console.error("NewsData.io destination error:", error);
-    return [];
-  }
-};
-
-const getWeatherAlerts = async (location, req) => {
-  const url = `http://api.weatherapi.com/v1/forecast.json?key=${WEATHERAPI_KEY}&q=${encodeURIComponent(
-    location
-  )}&alerts=yes`;
-  try {
-    const response = await fetch(url);
-    const data = await response.json();
-    if (
-      data.alerts &&
-      Array.isArray(data.alerts.alert) &&
-      data.alerts.alert.length > 0
-    ) {
-      const formattedAlerts = data.alerts.alert.map((alert) => ({
-        title: alert.headline,
-        content: alert.desc,
-      }));
-      console.log(`Weather alerts for ${location}`);
-      console.log(formattedAlerts);
-      return await getAiSummarizedAlerts(formattedAlerts, "Destination", req);
-    }
-    return [];
-  } catch (error) {
-    console.error("WeatherAPI error:", error);
-    return [];
-  }
+  console.log(
+    `Generating fake traffic alerts for route from ${start} to ${destination}`
+  );
+  // Return a predefined list of fake traffic alerts
+  return [
+    {
+      id: `traffic_${new Date().getTime()}_1`,
+      title: "Major congestion on the N1 highway near Midrand.",
+      severity: "High",
+      type: "Route",
+      timestamp: new Date(),
+    },
+    {
+      id: `traffic_${new Date().getTime()}_2`,
+      title: "Road closure on M1 due to an earlier accident.",
+      severity: "Critical",
+      type: "Route",
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 1)), // 1 day old
+    },
+  ];
 };
 
 const getDestinationAlerts = async (destination, req) => {
-  const [weatherAlerts, newsAlerts] = await Promise.all([
-    getWeatherAlerts(destination, req),
-    getNewsAlerts(destination, req),
-  ]);
-  return [...weatherAlerts, ...newsAlerts];
+  console.log(`Generating fake destination alerts for ${destination}`);
+  // Return a predefined list of fake destination alerts
+  return [
+    {
+      id: `dest_${new Date().getTime()}_1`,
+      title: `Protest action reported in the CBD of ${destination}.`,
+      severity: "Critical",
+      type: "Destination",
+      timestamp: new Date(),
+    },
+    {
+      id: `dest_${new Date().getTime()}_2`,
+      title: `Severe weather warning for ${destination}: Heavy rain expected.`,
+      severity: "High",
+      type: "Destination",
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 2)), // 2 days old
+    },
+    {
+      id: `dest_${new Date().getTime()}_3`,
+      title: `Water outage in some parts of ${destination}.`,
+      severity: "Medium",
+      type: "Destination",
+      timestamp: new Date(new Date().setDate(new Date().getDate() - 8)), // 8 days old (will be filtered out)
+    },
+  ];
+};
+
+const updateHotspotAlerts = async (hotspot, req) => {
+  console.log(
+    `Simulating background alert update for hotspot: ${hotspot.location}`
+  );
+  // In a real scenario, you'd call the live APIs here.
+  // For now, we'll use our fake data generators.
+  const newAlerts = await getDestinationAlerts(hotspot.location, req);
+
+  // Save these new alerts to the database, linked to the hotspot's ID.
+  // The saveAlerts function in monitoredDestinationRoutes.js can be reused or adapted for this.
+  console.log(
+    `Generated ${newAlerts.length} new alerts for ${hotspot.location}`
+  );
+  return newAlerts;
 };
 
 module.exports = {
   getTrafficAlerts,
   getDestinationAlerts,
+  updateHotspotAlerts,
 };
